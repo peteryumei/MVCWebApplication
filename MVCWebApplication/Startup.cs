@@ -22,6 +22,34 @@ namespace MVCWebApplication
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
+
+
+            //Admin role can access both admin as well as editor resources
+            //Editor role can access only ediotr resources, admin resources are not available for editor
+
+            services.AddAuthorization(options =>
+            {
+                options.AddPolicy("All", policy => policy.RequireRole("admin", "editor"));
+                options.AddPolicy("Admin", policy => policy.RequireRole("admin"));
+            });
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = "Cookies";
+                options.DefaultChallengeScheme = "oidc";
+            })
+            .AddCookie("Cookies")
+            .AddOpenIdConnect("oidc", options =>
+            {
+                options.SignInScheme = "Cookies";
+
+                options.Authority = "http://localhost:61086/";
+                options.RequireHttpsMetadata = false;
+
+                options.ClientId = "mvc";
+                options.Scope.Add("roles");
+                options.SaveTokens = true;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -36,6 +64,8 @@ namespace MVCWebApplication
             {
                 app.UseExceptionHandler("/Home/Error");
             }
+
+            app.UseAuthentication();
 
             app.UseStaticFiles();
 
